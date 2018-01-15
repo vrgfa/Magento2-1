@@ -1,0 +1,96 @@
+#!/bin/bash
+# You must be root
+# https://github.com/Microsoft/msphpsql/wiki/Install-pdo_sqlsrv-for-PHP-7.0-on-Debian-in-3-ways
+# Install UnixODBC
+apt-get install -y  unixodbc libgss3 odbcinst
+
+# Compile odbc_config as it is not part of unixodbc package
+cd /usr/local/src/
+apt-get install -y  devscripts debhelper dh-exec dh-autoreconf libreadline-dev libltdl-dev
+dget -ux http://http.debian.net/debian/pool/main/u/unixodbc/unixodbc_2.3.4-1.dsc
+cd unixodbc-2.3.4/
+dpkg-buildpackage -uc -us -B
+cp ./exe/odbc_config /usr/local/bin/
+# Save this binary for later
+
+# Microsoft ODBC Driver 13 for Linux
+cd /usr/local/src/
+#wget https://download.microsoft.com/download/2/E/5/2E58F097-805C-4AB8-9FC6-71288AB4409D/msodbcsql-13.0.0.0.tar.gz
+wget -nv -O msodbcsql-13.0.0.0.tar.gz "https://meetsstorenew.blob.core.windows.net/contianerhd/Ubuntu%2013.0%20Tar/msodbcsql-13.0.0.0.tar.gz?st=2016-10-18T17%3A29%3A00Z&se=2022-10-19T17%3A29%3A00Z&sp=rl&sv=2015-04-05&sr=b&sig=cDwPfrouVeIQf0vi%2BnKt%2BzX8Z8caIYvRCmicDL5oknY%3D"
+tar xf msodbcsql-13.0.0.0.tar.gz
+cd msodbcsql-13.0.0.0/
+ldd lib64/libmsodbcsql-13.0.so.0.0; echo "RET=$?"
+sed -i 's/$(uname -p)/"x86_64"/g' ./install.sh
+sed -i 's/req_dm_ver="2.3.1"/req_dm_ver="2.3.4"/g' ./install.sh
+# Replace "$(uname -p)" with "x86_64" in install.sh as Debian may report "unknown"
+# Change the req_dm_ver="2.3.1"; line to req_dm_ver="2.3.4"; due to new unixodbc version. @see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=818407
+#editor ./install.sh
+./install.sh install  --force --accept-license
+# Resulting:
+# /opt/microsoft/msodbcsql/
+# /etc/odbcinst.ini
+
+# (3) Or download precompiled pdo_sqlsrv extension binaries
+cd /usr/local/src/
+wget https://github.com/Microsoft/msphpsql/releases/download/4.0.8-Linux/Ubuntu15.tar
+tar -xf Ubuntu15.tar
+cp ./Ubuntu15/php_pdo_sqlsrv_7_nts.so /usr/local/lib/php/extensions/no-debug-non-zts-20151012/
+cp ./Ubuntu15/php_sqlsrv_7_nts.so /usr/local/lib/php/extensions/no-debug-non-zts-20151012/
+echo -e "; priority=20\nextension=php_pdo_sqlsrv_7_nts.so" > /usr/local/etc/php/conf.d/pdo_sqlsrv.ini
+echo -e "; priority=20\nextension=php_sqlsrv_7_nts.so" > /usr/local/etc/php/conf.d/sqlsrv.ini
+
+apt-get install -y locales \
+&& echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+&& locale-gen;
+
+#apt-get install -y locales \
+#&& echo "es_MX.UTF-8 UTF-8" >> /etc/locale.gen
+#&& locale-gen
+
+
+########################################################################################################################
+# Test
+#cd
+#cat > sqlsrv.php <<"EOF"
+#<?php
+#$db = new PDO("sqlsrv:server=tcp:1.2.3.4,1433", "user", "pass");
+#$stmt = $db->prepare("SELECT @@version;");
+#$stmt->execute();
+#while ($row = $stmt->fetch()) {
+#    print_r($row);
+#}
+#EOF
+#php sqlsrv.php
+
+
+# Should also work in dockerfile:
+#https://gist.github.com/danielnv18/c6768295f2e8b9796e311349df97aa32
+#
+# install the PHP extensions we need
+#RUN apt-get update && apt-get install -y locales unixodbc libgss3 odbcinst devscripts debhelper dh-exec dh-autoreconf libreadline-dev libltdl-dev unixodbc-dev wget unzip \
+#    && rm -rf /var/lib/apt/lists/* \
+#    && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+#
+## Compile odbc_config
+#RUN cd /usr/local/src/ && dget -ux http://http.debian.net/debian/pool/main/u/unixodbc/unixodbc_2.3.1-3.dsc \
+#    && cd unixodbc-2.3.1/ && apt-get update && dpkg-buildpackage -uc -d -us -B && cp ./exe/odbc_config /usr/local/bin/
+#
+### Microsoft ODBC Driver 13 for Linux
+#RUN cd /usr/local/src/ \
+######    && wget https://download.microsoft.com/download/2/E/5/2E58F097-805C-4AB8-9FC6-71288AB4409D/msodbcsql-13.0.0.0.tar.gz \
+#    && wget https://meetsstorenew.blob.core.windows.net/contianerhd/Ubuntu%2013.0%20Tar/msodbcsql-13.0.0.0.tar.gz?st=2016-10-18T17%3A29%3A00Z&se=2022-10-19T17%3A29%3A00Z&sp=rl&sv=2015-04-05&sr=b&sig=cDwPfrouVeIQf0vi%2BnKt%2BzX8Z8caIYvRCmicDL5oknY%3D \
+#    && tar xf msodbcsql-13.0.0.0.tar.gz && cd msodbcsql-13.0.0.0/ \
+#    && ldd lib64/libmsodbcsql-13.0.so.0.0; echo "RET=$?" \
+#    && sed -i 's/$(uname -p)/"x86_64"/g' ./install.sh \
+#    && ./install.sh install --force --accept-license
+#
+## Install PHP extensions for SQL Server
+#RUN cd /tmp && wget https://github.com/Microsoft/msphpsql/releases/download/v4.0.5-Linux/Ubuntu15.zip \
+#    && unzip Ubuntu15.zip \
+#    && mv -v Ubuntu15/* /usr/local/lib/php/extensions/no-debug-non-zts-20151012/ \
+#    && rm /usr/local/lib/php/extensions/no-debug-non-zts-20151012/signature \
+#    && rm -rf /tmp/*
+#
+#RUN echo "extension=php_sqlsrv_7_nts.so" >> /usr/local/etc/php/conf.d/sqlsvr.ini \
+#    && echo "extension=php_pdo_sqlsrv_7_nts.so" >> /usr/local/etc/php/conf.d/sqlsvr.ini \
+#    && locale-gen
