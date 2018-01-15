@@ -57,7 +57,7 @@ RUN apt-get update \
   	&& apt-get install -y \
   	libpcre3 \
   	libpcre3-dev \
-  	php-pear \
+  	# php-pear \
   	&& pecl install oauth \
   	&& echo "extension=oauth.so" > /usr/local/etc/php/conf.d/docker-php-ext-oauth.ini
 
@@ -71,6 +71,7 @@ RUN curl -sL https://deb.nodesource.com/setup_6.x | bash - \
 # Install Composer
 
 RUN	curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin/ --filename=composer
+RUN composer global require hirak/prestissimo
 
 # Install XDebug
 

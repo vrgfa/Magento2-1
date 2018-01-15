@@ -6,6 +6,7 @@
 
 [![Build Status](https://travis-ci.org/clean-docker/Magento2.svg?branch=master)](https://travis-ci.org/clean-docker/Magento2)
 [![Build Status](https://images.microbadger.com/badges/image/rafaelcgstz/magento2.svg)](https://microbadger.com/images/rafaelcgstz/magento2)
+[![Releases](https://img.shields.io/github/release/clean-docker/Magento2.svg)](https://github.com/clean-docker/Magento2/releases)
 
 ### Requirements
 
@@ -68,4 +69,4 @@ Enjoy your new panels!
 
 ### License
 
-MIT © 2017 [Rafael Corrêa Gomes](https://github.com/rafaelstz/) and contributors.
+MIT © 2018 [Rafael Corrêa Gomes](https://github.com/rafaelstz/) and [contributors](https://github.com/clean-docker/Magento2/graphs/contributors).
